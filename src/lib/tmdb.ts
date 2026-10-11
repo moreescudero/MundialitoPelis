@@ -79,3 +79,18 @@ export async function searchTmdb(query: string): Promise<TmdbSearchResult[]> {
     poster: posterUrl(r.poster_path, "w185"),
   }));
 }
+
+export async function fetchTmdbCard(id: number) {
+  const d = await tmdb<{
+    id: number;
+    title: string;
+    release_date: string;
+    poster_path: string | null;
+  }>(`/movie/${id}`, { language: "es-AR" });
+  return {
+    tmdbId: d.id,
+    title: d.title,
+    year: d.release_date ? Number(d.release_date.slice(0, 4)) : null,
+    poster: posterUrl(d.poster_path, "w342"),
+  };
+}

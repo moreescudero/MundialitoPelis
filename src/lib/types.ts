@@ -30,3 +30,19 @@ export interface Movie {
   awards: string | null;
   trivia: string[];
 }
+
+/** Una película de una watchlist de Letterboxd. El slug identifica la película. */
+export interface LbFilm {
+  slug: string;
+  name: string;
+  year: number | null;
+}
+
+/** Película ya resuelta contra TMDB, lista para mostrar como tarjeta. */
+export interface MatchCard {
+  slug: string;
+  tmdbId: number;
+  title: string;
+  year: number | null;
+  poster: string | null;
+}
