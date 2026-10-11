@@ -9,6 +9,8 @@ export interface BracketMatch {
 export interface Bracket {
   /** rounds[0] es la primera ronda; la última tiene un solo partido (la final) */
   rounds: BracketMatch[][];
+  /** votos en orden, para poder deshacer el último: [ronda, partido] */
+  history?: [number, number][];
 }
 
 const isPowerOfTwo = (n: number) => n >= 2 && (n & (n - 1)) === 0;
@@ -67,6 +69,7 @@ function reset(rounds: BracketMatch[][], round: number, index: number) {
 
 export function pickWinner(bracket: Bracket, round: number, index: number, slug: string): Bracket {
   const rounds = structuredClone(bracket.rounds);
+  const history = [...(bracket.history ?? [])];
   const match = rounds[round]?.[index];
   if (!match) throw new Error("Ese partido no existe.");
   if (slug !== match.a && slug !== match.b) throw new Error("Esa película no juega este partido.");
@@ -76,14 +79,29 @@ export function pickWinner(bracket: Bracket, round: number, index: number, slug:
   match.winner = slug;
   const next = rounds[round + 1]?.[index >> 1];
   if (next) next[slotOf(index)] = slug;
-  return { rounds };
+  history.push([round, index]);
+  return { rounds, history };
+}
+
+/** Deshace el último voto que siga vigente. */
+export function undoLast(bracket: Bracket): Bracket {
+  const history = [...(bracket.history ?? [])];
+  while (history.length) {
+    const [round, index] = history.pop()!;
+    if (bracket.rounds[round][index].winner) {
+      const rounds = structuredClone(bracket.rounds);
+      reset(rounds, round, index);
+      return { rounds, history };
+    }
+  }
+  return bracket;
 }
 
 export function clearWinner(bracket: Bracket, round: number, index: number): Bracket {
   const rounds = structuredClone(bracket.rounds);
   if (!rounds[round]?.[index]) throw new Error("Ese partido no existe.");
   reset(rounds, round, index);
-  return { rounds };
+  return { rounds, history: bracket.history };
 }
 
 /** Primer partido pendiente con las dos películas ya definidas. */

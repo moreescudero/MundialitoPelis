@@ -421,6 +421,14 @@ export function Cuadro() {
           >
             {state.bracket ? "🎲 Sortear de nuevo" : "🎲 Sortear"}
           </button>
+          {state.bracket && (
+            <Link
+              href="/mundial"
+              className="self-start rounded-lg bg-green-600 px-5 py-2.5 font-medium text-white"
+            >
+              ▶ Empezar el mundial
+            </Link>
+          )}
 
           {state.bracket && (
             <div className="flex flex-col gap-3">

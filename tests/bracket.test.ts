@@ -9,6 +9,7 @@ import {
   progress,
   roundName,
   seedOrder,
+  undoLast,
 } from "../src/lib/bracket.ts";
 
 const names = (n: number) => Array.from({ length: n }, (_, i) => `m${i + 1}`);
@@ -87,4 +88,17 @@ test("nombres de ronda", () => {
     Array.from({ length: 6 }, (_, r) => roundName(createBracket(names(64)), r)),
     ["32avos de final", "16avos de final", "Octavos de final", "Cuartos de final", "Semifinales", "Final"],
   );
+});
+
+test("undoLast deshace el último voto y en orden", () => {
+  let b = createBracket(names(4));
+  b = pickWinner(b, 0, 0, "m1");
+  b = pickWinner(b, 0, 1, "m3");
+  b = undoLast(b);
+  assert.equal(b.rounds[0][1].winner, null);
+  assert.equal(b.rounds[1][0].b, null);
+  assert.equal(b.rounds[0][0].winner, "m1");
+  b = undoLast(b);
+  assert.equal(progress(b).played, 0);
+  assert.equal(undoLast(b), b);
 });
