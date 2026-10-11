@@ -94,9 +94,9 @@ export function Mundial() {
         {header}
         {llave}
         <section className="flex flex-col items-center gap-5 py-6 text-center">
-          <p className="text-5xl">🏆</p>
-          <h2 className="text-3xl font-extrabold sm:text-5xl">¡{champ?.title} es la campeona!</h2>
-          {champ && <div className="w-56 sm:w-72"><Poster movie={champ} className="rounded-xl shadow-2xl" /></div>}
+          <p className="text-6xl drop-shadow-[0_0_30px_rgba(245,197,24,0.6)]">🏆</p>
+          <h2 className="text-4xl font-bold text-gold sm:text-6xl">¡{champ?.title} es la campeona!</h2>
+          {champ && <div className="w-56 sm:w-72"><Poster movie={champ} className="rounded-xl shadow-[0_0_60px_rgba(245,197,24,0.35)]" /></div>}
           <ul className="flex flex-col gap-1 text-sm opacity-80">
             {path.map((p) => (
               <li key={p.round}>{p.round}: le ganó a <b>{p.rival}</b></li>
@@ -133,7 +133,7 @@ export function Mundial() {
         <Suspense fallback={<FichaSkeleton />}>
           <Ficha key={a.slug} entry={a} onPick={() => vote(a.slug)} />
         </Suspense>
-        <div className="flex items-center justify-center text-4xl font-black opacity-40">VS</div>
+        <div className="flex items-center justify-center font-[family-name:var(--font-display)] text-5xl text-gold lg:px-2">VS</div>
         <Suspense fallback={<FichaSkeleton />}>
           <Ficha key={b.slug} entry={b} onPick={() => vote(b.slug)} />
         </Suspense>
