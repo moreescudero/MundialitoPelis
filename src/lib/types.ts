@@ -45,4 +45,14 @@ export interface MatchCard {
   title: string;
   year: number | null;
   poster: string | null;
+  /** nota promedio de TMDB (0-10) y cantidad de votos, para ordenar cabezas de serie */
+  rating: number | null;
+  votes: number;
+}
+
+/** De dónde vino una película del mundial. */
+export type EntrySource = "both" | "a" | "b" | "manual";
+
+export interface Entry extends MatchCard {
+  source: EntrySource;
 }

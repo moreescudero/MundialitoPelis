@@ -1,4 +1,5 @@
-import type { LbFilm, MatchCard } from "./types";
+import type { Bracket } from "./bracket";
+import type { Entry, LbFilm, MatchCard } from "./types";
 
 export interface PersonList {
   label: string;
@@ -7,6 +8,8 @@ export interface PersonList {
   films: LbFilm[];
 }
 
+export type SeedMode = "random" | "seeded";
+
 export interface SetupState {
   a: PersonList | null;
   b: PersonList | null;
@@ -14,14 +17,40 @@ export interface SetupState {
   matches: MatchCard[];
   /** slugs que se quitaron a mano de las coincidencias */
   removed: string[];
+  /** películas sumadas para completar el cuadro (sugeridas o buscadas) */
+  extras: Entry[];
+  /** sugerencias descartadas */
+  dismissed: string[];
+  /** semilla para mezclar las sugerencias */
+  suggestSeed: number;
+  /** tamaño elegido para el mundial; null = el sugerido */
+  size: number | null;
+  seedMode: SeedMode;
+  /** llave sorteada; null hasta que se sortea */
+  bracket: Bracket | null;
 }
 
-const KEY = "mundial-peliculas:setup:v1";
+const KEY = "mundial-peliculas:setup:v2";
 
-export const emptySetup: SetupState = { a: null, b: null, matches: [], removed: [] };
+export const emptySetup: SetupState = {
+  a: null,
+  b: null,
+  matches: [],
+  removed: [],
+  extras: [],
+  dismissed: [],
+  suggestSeed: 1,
+  size: null,
+  seedMode: "random",
+  bracket: null,
+};
 
-let cache: SetupState | null = null;
-const listeners = new Set<() => void>();
+/** Las películas que hoy están en el mundial: coincidencias no quitadas + las sumadas. */
+export function getEntries(s: SetupState): Entry[] {
+  const removed = new Set(s.removed);
+  const both: Entry[] = s.matches.filter((m) => !removed.has(m.slug)).map((m) => ({ ...m, source: "both" }));
+  return [...both, ...s.extras];
+}
 
 function read(): SetupState {
   try {
@@ -31,6 +60,9 @@ function read(): SetupState {
     return emptySetup;
   }
 }
+
+let cache: SetupState | null = null;
+const listeners = new Set<() => void>();
 
 /** Store mínimo para useSyncExternalStore: el estado vive en localStorage. */
 export const setupStore = {

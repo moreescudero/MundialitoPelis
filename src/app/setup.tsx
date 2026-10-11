@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import Link from "next/link";
 import { useMemo, useState, useSyncExternalStore } from "react";
 import { PersonPanel } from "./person-panel";
 import { setupStore, type PersonList } from "@/lib/storage";
@@ -27,7 +28,7 @@ export function Setup() {
 
   const setPerson = (key: "a" | "b") => (list: PersonList | null) =>
     // al cambiar una lista, las coincidencias anteriores dejan de valer
-    setState((s) => ({ ...s, [key]: list, matches: [], removed: [] }));
+    setState((s) => ({ ...s, [key]: list, matches: [], removed: [], extras: [], dismissed: [], size: null, bracket: null }));
 
   async function findMatches() {
     setError(null);
@@ -48,7 +49,7 @@ export function Setup() {
         failed.push(...data.failed);
         setProgress({ done: Math.min(i + CHUNK, commonSlugs.length), total: commonSlugs.length });
       }
-      setState((s) => ({ ...s, matches: cards, removed: [] }));
+      setState((s) => ({ ...s, matches: cards, removed: [], extras: [], size: null, bracket: null }));
       setUnresolved(failed);
     } catch (e) {
       setError((e as Error).message);
@@ -63,6 +64,7 @@ export function Setup() {
     setState((s) => ({
       ...s,
       removed: s.removed.includes(slug) ? s.removed.filter((r) => r !== slug) : [...s.removed, slug],
+      bracket: null,
     }));
 
   const bothLoaded = state.a && state.b;
@@ -98,6 +100,15 @@ export function Setup() {
           )}
           {error && <p className="text-sm text-red-500">{error}</p>}
         </div>
+      )}
+
+      {bothLoaded && (state.matches.length > 0 || commonSlugs.length === 0) && (
+        <Link
+          href="/cuadro"
+          className="self-start rounded-lg bg-foreground px-5 py-2.5 font-medium text-background"
+        >
+          Armar el cuadro →
+        </Link>
       )}
 
       {state.matches.length > 0 && (

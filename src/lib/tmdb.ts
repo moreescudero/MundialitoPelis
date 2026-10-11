@@ -66,17 +66,28 @@ export interface TmdbSearchResult {
   title: string;
   year: number | null;
   poster: string | null;
+  rating: number | null;
+  votes: number;
 }
 
 export async function searchTmdb(query: string): Promise<TmdbSearchResult[]> {
   const data = await tmdb<{
-    results: { id: number; title: string; release_date: string; poster_path: string | null }[];
+    results: {
+      id: number;
+      title: string;
+      release_date: string;
+      poster_path: string | null;
+      vote_average: number;
+      vote_count: number;
+    }[];
   }>("/search/movie", { query, language: "es-AR", include_adult: "false" });
   return data.results.slice(0, 12).map((r) => ({
     id: r.id,
     title: r.title,
     year: r.release_date ? Number(r.release_date.slice(0, 4)) : null,
-    poster: posterUrl(r.poster_path, "w185"),
+    poster: posterUrl(r.poster_path, "w342"),
+    rating: r.vote_count ? r.vote_average : null,
+    votes: r.vote_count,
   }));
 }
 
@@ -86,11 +97,15 @@ export async function fetchTmdbCard(id: number) {
     title: string;
     release_date: string;
     poster_path: string | null;
+    vote_average: number;
+    vote_count: number;
   }>(`/movie/${id}`, { language: "es-AR" });
   return {
     tmdbId: d.id,
     title: d.title,
     year: d.release_date ? Number(d.release_date.slice(0, 4)) : null,
     poster: posterUrl(d.poster_path, "w342"),
+    rating: d.vote_count ? d.vote_average : null,
+    votes: d.vote_count,
   };
 }
