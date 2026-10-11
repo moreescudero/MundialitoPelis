@@ -6,8 +6,8 @@ export default function Home() {
       <header className="flex flex-col gap-2">
         <h1 className="text-5xl font-bold tracking-tight text-gold">🏆 Mundial de Películas</h1>
         <p className="opacity-70">
-          Cargá las watchlists de Letterboxd, cruzamos lo que tienen en común y las películas se
-          enfrentan hasta que quede una campeona.
+          Cargá las watchlists de Letterboxd de los dos, armamos un mundial con una mezcla de películas
+          de cada una y se enfrentan hasta que quede una campeona.
         </p>
       </header>
       <Setup />

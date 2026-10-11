@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { Suspense, useMemo, useState, useSyncExternalStore } from "react";
 import { champion, nextMatch, pickWinner, progress, roundName, undoLast } from "@/lib/bracket";
-import { getEntries, setupStore } from "@/lib/storage";
+import { setupStore } from "@/lib/storage";
 import { Poster } from "../cuadro/tile";
 import { Ficha, FichaSkeleton, loadMovie } from "./ficha";
 import { Llave } from "./llave";
@@ -12,7 +12,7 @@ export function Mundial() {
   const state = useSyncExternalStore(setupStore.subscribe, setupStore.getSnapshot, setupStore.getServerSnapshot);
   const [showBracket, setShowBracket] = useState(false);
   const bracket = state.bracket;
-  const bySlug = useMemo(() => new Map(getEntries(state).map((e) => [e.slug, e])), [state]);
+  const bySlug = useMemo(() => new Map(state.entries.map((e) => [e.slug, e])), [state.entries]);
 
   if (!bracket) {
     return (

@@ -1,5 +1,5 @@
 import type { Bracket } from "./bracket";
-import type { Entry, LbFilm, MatchCard } from "./types";
+import type { Entry, LbFilm } from "./types";
 
 export interface PersonList {
   label: string;
@@ -13,12 +13,8 @@ export type SeedMode = "random" | "seeded";
 export interface SetupState {
   a: PersonList | null;
   b: PersonList | null;
-  /** coincidencias ya resueltas contra TMDB */
-  matches: MatchCard[];
-  /** slugs que se quitaron a mano de las coincidencias */
-  removed: string[];
-  /** películas sumadas para completar el cuadro (sugeridas o buscadas) */
-  extras: Entry[];
+  /** películas del mundial (sacadas de las dos watchlists o buscadas a mano) */
+  entries: Entry[];
   /** sugerencias descartadas */
   dismissed: string[];
   /** semilla para mezclar las sugerencias */
@@ -30,27 +26,18 @@ export interface SetupState {
   bracket: Bracket | null;
 }
 
-const KEY = "mundial-peliculas:setup:v2";
+const KEY = "mundial-peliculas:setup:v3";
 
 export const emptySetup: SetupState = {
   a: null,
   b: null,
-  matches: [],
-  removed: [],
-  extras: [],
+  entries: [],
   dismissed: [],
   suggestSeed: 1,
   size: null,
   seedMode: "random",
   bracket: null,
 };
-
-/** Las películas que hoy están en el mundial: coincidencias no quitadas + las sumadas. */
-export function getEntries(s: SetupState): Entry[] {
-  const removed = new Set(s.removed);
-  const both: Entry[] = s.matches.filter((m) => !removed.has(m.slug)).map((m) => ({ ...m, source: "both" }));
-  return [...both, ...s.extras];
-}
 
 function read(): SetupState {
   try {

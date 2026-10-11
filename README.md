@@ -1,7 +1,8 @@
 # 🏆 Mundial de Películas
 
-Cargás dos watchlists de Letterboxd, la app cruza las películas en común, completa el cuadro
-(8, 16, 32 o 64) y las películas se enfrentan de a dos hasta que queda una campeona.
+Cargás dos watchlists de Letterboxd y la app arma el cuadro (8, 16, 32 o 64) mezclando películas
+de las dos listas, una de cada uno por turno (no hace falta que coincidan). Las películas se
+enfrentan de a dos hasta que queda una campeona.
 
 ## Correrlo
 

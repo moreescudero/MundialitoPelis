@@ -4,18 +4,22 @@ import Link from "next/link";
 import { useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { createBracket, roundName, seedOrder } from "@/lib/bracket";
 import { defaultSize, interleave, seedScore, shuffle, SIZES } from "@/lib/seed";
-import { getEntries, setupStore, type SeedMode } from "@/lib/storage";
+import { setupStore, type SeedMode } from "@/lib/storage";
 import type { Entry, EntrySource, MatchCard } from "@/lib/types";
 import { Poster, SourceBadge } from "./tile";
 
-type Candidate = { slug: string; source: "a" | "b" };
+type Candidate = { slug: string; source: "a" | "b" | "both" };
+
+/** ¿Esta película cuenta para el turno de `who`? Las que están en las dos listas sirven para cualquiera. */
+const isFor = (source: EntrySource, who: "a" | "b") => source === who || source === "both";
 
 export function Cuadro() {
   const state = useSyncExternalStore(setupStore.subscribe, setupStore.getSnapshot, setupStore.getServerSnapshot);
   const update = setupStore.update;
 
-  const entries = useMemo(() => getEntries(state), [state]);
-  const size = state.size ?? defaultSize(entries.length);
+  const entries = state.entries;
+  // con el cuadro vacío arrancamos en 16: alcanza para variedad sin que se haga eterno
+  const size = state.size ?? (entries.length === 0 ? 16 : defaultSize(entries.length));
   const diff = size - entries.length; // >0 faltan, <0 sobran
 
   const nameA = state.a?.label ?? "Persona 1";
@@ -33,29 +37,30 @@ export function Cuadro() {
     if (!state.a || !state.b) return [];
     const inA = new Set(state.a.films.map((f) => f.slug));
     const inB = new Set(state.b.films.map((f) => f.slug));
-    const onlyA = shuffle(state.a.films.filter((f) => !inB.has(f.slug)), state.suggestSeed).map((f) => ({
+    const listA = shuffle(state.a.films, state.suggestSeed).map<Candidate>((f) => ({
       slug: f.slug,
-      source: "a" as const,
+      source: inB.has(f.slug) ? "both" : "a",
     }));
-    const onlyB = shuffle(state.b.films.filter((f) => !inA.has(f.slug)), state.suggestSeed + 1).map((f) => ({
+    // las que están en las dos listas ya entraron por la lista de A
+    const listB = shuffle(state.b.films.filter((f) => !inA.has(f.slug)), state.suggestSeed + 1).map<Candidate>((f) => ({
       slug: f.slug,
-      source: "b" as const,
+      source: "b",
     }));
-    return interleave(onlyA, onlyB);
+    return interleave(listA, listB);
   }, [state.a, state.b, state.suggestSeed]);
 
   const takenSlugs = () =>
     new Set([...entries.map((e) => e.slug), ...pending.map((e) => e.slug), ...state.dismissed, ...tried.current]);
 
-  const hasCandidates = (source: "a" | "b") => {
+  const hasCandidates = (who: "a" | "b") => {
     const taken = takenSlugs();
-    return queue.some((c) => c.source === source && !taken.has(c.slug));
+    return queue.some((c) => isFor(c.source, who) && !taken.has(c.slug));
   };
 
   /** Resuelve las próximas `count` sugerencias de la cola, o de `only` si se indica. */
   async function fetchMore(count: number, only?: "a" | "b"): Promise<Entry[]> {
     const taken = takenSlugs();
-    const batch = queue.filter((c) => !taken.has(c.slug) && (!only || c.source === only)).slice(0, count);
+    const batch = queue.filter((c) => !taken.has(c.slug) && (!only || isFor(c.source, only))).slice(0, count);
     batch.forEach((c) => tried.current.add(c.slug));
     if (batch.length === 0) return [];
 
@@ -88,7 +93,7 @@ export function Cuadro() {
 
   const addExtras = (added: Entry[]) => {
     const slugs = new Set(added.map((e) => e.slug));
-    update((s) => ({ ...s, extras: [...s.extras, ...added], bracket: null }));
+    update((s) => ({ ...s, entries: [...s.entries, ...added], bracket: null }));
     setPending((p) => p.filter((e) => !slugs.has(e.slug)));
   };
 
@@ -99,27 +104,27 @@ export function Cuadro() {
       const need = diff;
       const pool = [...pending];
       const added: Entry[] = [];
-      let countA = entries.filter((e) => e.source === "a").length;
-      let countB = entries.filter((e) => e.source === "b").length;
+      let countA = entries.filter((e) => isFor(e.source, "a")).length;
+      let countB = entries.filter((e) => isFor(e.source, "b")).length;
 
       const take = (i: number) => {
         const [e] = pool.splice(i, 1);
         added.push(e);
-        if (e.source === "a") countA++;
-        else countB++;
+        if (isFor(e.source, "a")) countA++;
+        if (isFor(e.source, "b")) countB++;
       };
 
       // una de cada uno por turno; se pide más solo de quien le toca
       while (added.length < need) {
         const want: "a" | "b" = countA <= countB ? "a" : "b";
         const other = want === "a" ? "b" : "a";
-        const i = pool.findIndex((e) => e.source === want);
+        const i = pool.findIndex((e) => isFor(e.source, want));
         if (i >= 0) {
           take(i);
         } else if (hasCandidates(want)) {
           pool.push(...(await fetchMore(6, want)));
         } else {
-          const j = pool.findIndex((e) => e.source === other);
+          const j = pool.findIndex((e) => isFor(e.source, other));
           if (j >= 0) take(j);
           else if (hasCandidates(other)) pool.push(...(await fetchMore(6, other)));
           else break;
@@ -189,20 +194,11 @@ export function Cuadro() {
   const setSize = (n: number) => update((s) => ({ ...s, size: n, bracket: null }));
 
   const removeEntry = (e: Entry) =>
-    update((s) =>
-      e.source === "both"
-        ? { ...s, removed: [...s.removed, e.slug], bracket: null }
-        : { ...s, extras: s.extras.filter((x) => x.slug !== e.slug), bracket: null },
-    );
+    update((s) => ({ ...s, entries: s.entries.filter((x) => x.slug !== e.slug), bracket: null }));
 
   const removeRandom = (n: number) => {
     const doomed = new Set(shuffle(entries).slice(0, n).map((e) => e.slug));
-    update((s) => ({
-      ...s,
-      removed: [...s.removed, ...entries.filter((e) => doomed.has(e.slug) && e.source === "both").map((e) => e.slug)],
-      extras: s.extras.filter((e) => !doomed.has(e.slug)),
-      bracket: null,
-    }));
+    update((s) => ({ ...s, entries: s.entries.filter((e) => !doomed.has(e.slug)), bracket: null }));
   };
 
   const setSeedMode = (m: SeedMode) => update((s) => ({ ...s, seedMode: m, bracket: null }));
@@ -269,9 +265,9 @@ export function Cuadro() {
       {/* faltan */}
       {diff > 0 && (
         <section className="flex flex-col gap-4 rounded-2xl border border-foreground/15 p-5">
-          <h2 className="text-lg font-semibold">Completar con {diff} más</h2>
+          <h2 className="text-lg font-semibold">{entries.length === 0 ? `Armar el mundial: ${diff} películas` : `Completar con ${diff} más`}</h2>
           <p className="text-sm opacity-70">
-            Salen de las películas que están en la watchlist de uno solo, una de {nameA} y una de {nameB} por turno.
+            Salen de las dos watchlists, mezcladas: una de {nameA} y una de {nameB} por turno. No hace falta que coincidan.
           </p>
           <div className="flex flex-wrap gap-2">
             <button
